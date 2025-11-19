@@ -7,8 +7,8 @@ export function Graph1Page() {
       <h2>Ahoj 2</h2>
       <div style={{ marginTop: 20 }}>
         <CashFlowBarChartContainer
-          onWeekClick={(point, index, event) => {
-            console.log("Week clicked2:", point, index, event);
+          onWeekClick={(point, key, event) => {
+            console.log("Week clicked2:", point, key, event);
           }}
         />
       </div>

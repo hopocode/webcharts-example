@@ -11,8 +11,8 @@ export function Graph2Page() {
       <div style={{ marginTop: 20 }}>
         <CashFlowBarChartContainer
           enableWebViewMessaging={true}
-          onWeekClick={(point, index) => {
-            console.log("Graph2 - week clicked:", point, index);
+          onWeekClick={(point, key) => {
+            console.log("Graph2 - week clicked:", point, key);
           }}
         />
       </div>

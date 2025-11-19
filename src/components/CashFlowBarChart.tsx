@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -13,44 +13,21 @@ import {
 type DataPoint = {
   name: string;
   value: number;
+  key: string;
 };
 
 type Props = {
   data: DataPoint[];
-  onWeekClick?: (point: DataPoint, index: number, event: any) => void;
+  onWeekClick?: (point: DataPoint, key: string, event: any) => void;
+  selectedKey?: string | null;
 };
 
-export default function CashFlowBarChart({ data, onWeekClick }: Props) {
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-
-  // Listen for global native messages dispatched by window.onNativeMessage
-  // Expect message shape: { type: 'selectWeek', payload: { index: number } }
-  useEffect(() => {
-    const handler = (e: any) => {
-      const msg = e?.detail ?? e;
-      if (
-        msg &&
-        msg.type === "selectWeek" &&
-        msg.payload &&
-        typeof msg.payload.index === "number"
-      ) {
-        setSelectedIndex(msg.payload.index);
-      }
-    };
-    window.addEventListener("nativeMessage", handler as EventListener);
-    return () =>
-      window.removeEventListener("nativeMessage", handler as EventListener);
-  }, []);
-
-  const handleBarClick = (point: any, index: number, event: any) => {
-    // point may come wrapped by recharts; try to surface useful info
+function CashFlowBarChart({ data, onWeekClick, selectedKey }: Props) {
+  // Pure presentational component — no state, no effects.
+  const handleBarClick = (point: any, _: number, event: any) => {
     const payload = point && point.payload ? point.payload : point;
-    // set selected index locally so UI highlights immediately
-    setSelectedIndex(index);
-    if (onWeekClick) {
-      // Ensure payload matches DataPoint shape
-      onWeekClick(payload as DataPoint, index, event);
-    }
+    const key = (payload && payload.key) || payload.name;
+    if (onWeekClick) onWeekClick(payload as DataPoint, key, event);
   };
 
   return (
@@ -65,10 +42,10 @@ export default function CashFlowBarChart({ data, onWeekClick }: Props) {
           <YAxis />
           <Tooltip formatter={(value: number) => `${value} €`} />
           <Bar dataKey="value" onClick={handleBarClick}>
-            {data.map((entry, i) => (
+            {data.map((entry) => (
               <Cell
-                key={`cell-${i}`}
-                fill={i === selectedIndex ? "#ff9800" : "#1976d2"}
+                key={`cell-${entry.key}`}
+                fill={entry.key === selectedKey ? "#ff9800" : "#1976d2"}
                 cursor="pointer"
               />
             ))}
@@ -78,3 +55,6 @@ export default function CashFlowBarChart({ data, onWeekClick }: Props) {
     </div>
   );
 }
+
+// Export memoized/pure component to avoid unnecessary re-renders
+export default React.memo(CashFlowBarChart);
