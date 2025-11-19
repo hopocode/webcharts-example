@@ -23,18 +23,23 @@ type Props = {
 export default function CashFlowBarChart({ data, onWeekClick }: Props) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  // Listen for native messages that request selecting/highlighting a week
+  // Listen for global native messages dispatched by window.onNativeMessage
+  // Expect message shape: { type: 'selectWeek', payload: { index: number } }
   useEffect(() => {
     const handler = (e: any) => {
-      const payload = e?.detail ?? e;
-      // payload expected shape: { index: number } or { index: number, ... }
-      if (payload && typeof payload.index === "number") {
-        setSelectedIndex(payload.index);
+      const msg = e?.detail ?? e;
+      if (
+        msg &&
+        msg.type === "selectWeek" &&
+        msg.payload &&
+        typeof msg.payload.index === "number"
+      ) {
+        setSelectedIndex(msg.payload.index);
       }
     };
-    window.addEventListener("selectWeek", handler as EventListener);
+    window.addEventListener("nativeMessage", handler as EventListener);
     return () =>
-      window.removeEventListener("selectWeek", handler as EventListener);
+      window.removeEventListener("nativeMessage", handler as EventListener);
   }, []);
 
   const handleBarClick = (point: any, index: number, event: any) => {
