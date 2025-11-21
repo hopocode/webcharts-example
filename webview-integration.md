@@ -90,6 +90,87 @@ window.postMessageToHost = function (message) {
 
 ---
 
+**Embedding in an iframe (browser-to-browser integration)**
+
+When embedding the `/graph2` page inside an `iframe` on another web page you can use the standard
+`window.postMessage` API for two-way messaging. This is useful when the host is another web app
+or a dashboard and you don't control a native layer.
+
+Parent page (host) example:
+
+```html
+<!-- parent.html -->
+<iframe id="chartIframe" src="http://localhost:5173/graph2" style="width:100%;height:600px;border:0"></iframe>
+<script>
+const iframe = document.getElementById('chartIframe');
+
+// Listen for messages from the iframe
+window.addEventListener('message', (event) => {
+  // Verify origin for security (use your app's origin in production)
+  if (event.origin !== 'http://localhost:5173') return;
+  const m = event.data;
+  if (!m || !m.type) return;
+  switch (m.type) {
+    case 'weekClick':
+      console.log('Iframe clicked week:', m.payload);
+      break;
+  }
+});
+
+// Send a selectWeek message to the iframe
+function selectWeekInIframe(key) {
+  const msg = { type: 'selectWeek', payload: { key } };
+  // Use exact target origin in production
+  iframe.contentWindow.postMessage(msg, 'http://localhost:5173');
+}
+</script>
+```
+
+Inside the iframe (the web app at `/graph2`) you can forward incoming messages into the
+app's existing message handler (we already expose `window.onNativeMessage` and dispatch
+`nativeMessage` CustomEvents in this project):
+
+```js
+// inside web app (e.g. in src/main.tsx or CashFlowBarChartContainer)
+window.addEventListener('message', (event) => {
+  // Optionally check event.origin to ensure message is trusted
+  // if (event.origin !== 'https://your-host.com') return;
+
+  // event.data may be an object (no need to JSON.parse) or a string
+  const m = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+  if (!m || !m.type) return;
+
+  // Reuse existing onNativeMessage convention if available
+  if (window.onNativeMessage) {
+    window.onNativeMessage(m);
+    return;
+  }
+
+  // Fallback: dispatch app-level event
+  window.dispatchEvent(new CustomEvent('nativeMessage', { detail: m }));
+});
+```
+
+To send messages from the iframe to the parent (for example when a bar is clicked):
+
+```js
+// when a bar is clicked in CashFlowBarChartContainer
+const message = { type: 'weekClick', payload: { point, key } };
+// Use explicit origin in production; '*' is ok for local development only
+window.parent.postMessage(message, 'http://localhost:5173');
+```
+
+Security notes for iframe embedding:
+
+- Always restrict `targetOrigin` and validate `event.origin` on the receiver side.
+- Prefer posting JS objects (browsers support structured clone) instead of stringified JSON to avoid double-parsing; if you must stringify, parse safely.
+- Avoid `'*'` as `targetOrigin` in production.
+
+This iframe flow mirrors the native messaging contract used elsewhere in this doc:
+- Web -> host: `{ type: 'weekClick', payload: { point, key } }`
+- Host -> web: `{ type: 'selectWeek', payload: { key } }`
+
+
 **iOS (Swift) — WKWebView**
 
 1) Add a `WKWebView` and register a `WKScriptMessageHandler` to receive messages from JS (JS -> native):

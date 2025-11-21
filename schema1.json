@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Native-WebView Message",
+  "description": "Standardized message format for communication between a native application and a WebView.",
+  "type": "object",
+  "properties": {
+    "type": {
+      "description": "Defines the message category or its general purpose.",
+      "type": "string",
+      "examples": ["event", "command", "response", "error"]
+    },
+    "action": {
+      "description": "Name of the action or event being triggered.",
+      "type": "string",
+      "examples": ["init", "userUpdate", "openScreen", "log", "fetchData"]
+    },
+    "requestId": {
+      "description": "Optional ID used to pair requests and responses.",
+      "type": ["string", "null"],
+      "nullable": true
+    },
+    "payload": {
+      "description": "Data carried with the message.",
+      "type": ["object", "null"],
+      "nullable": true,
+      "additionalProperties": true,
+      "examples": [
+        { "userId": 123, "name": "Alice" },
+        { "success": true },
+        null
+      ]
+    }
+  },
+  "required": ["type", "action"],
+  "additionalProperties": false
+}
